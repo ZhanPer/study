@@ -6,56 +6,156 @@
   <title>Привет я тут, а ты?</title>
   <style>
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 32px 16px;
-      font-family: Arial, sans-serif;
-      color: #20202a;
-      background: #f4f0ff;
-    }
-    main { max-width: 760px; margin: 0 auto; }
-    h1 { text-align: center; }
-    .panel {
-      margin: 28px auto;
-      padding: 14px;
-      max-width: 680px;
-      background: #fff;
-      border: 4px solid #20202a;
-      border-radius: 12px;
-      box-shadow: 8px 8px 0 #c7b5ff;
-    }
-    .panel img, .panel video {
-      display: block;
-      width: 100%;
-      height: auto;
-      border: 2px solid #20202a;
-      border-radius: 4px;
-      background: #17151e;
-    }
-    .caption {
-      margin: 14px 4px 4px;
-      font-size: 1.1rem;
-      font-weight: 700;
-      text-align: center;
-    }
-    .video-note {
-      margin: 10px 4px 4px;
-      color: #5b5669;
-      font-size: .92rem;
-      text-align: center;
-    }
+    body { margin: 0; padding: 28px 16px 48px; font-family: Arial, sans-serif; color: #20202a; background: #f4f0ff; }
+    main { max-width: 1100px; margin: 0 auto; }
+    h1 { text-align: center; margin: 8px 0 28px; }
+    .panel { margin: 22px auto; padding: 14px; background: #fff; border: 4px solid #20202a; border-radius: 12px; box-shadow: 8px 8px 0 #c7b5ff; }
+    .hero { max-width: 760px; }
+    .panel video { display: block; width: 100%; height: auto; border: 2px solid #20202a; border-radius: 4px; background: #17151e; }
+    .games { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: stretch; }
+    .game-panel { min-width: 0; margin: 0; transition: transform .18s ease, box-shadow .18s ease; }
+    .game-panel:hover { transform: translateY(-4px); box-shadow: 10px 12px 0 #b7a1ff; }
+    .caption { margin: 14px 4px 4px; font-size: 1.1rem; font-weight: 700; text-align: center; }
+    .note { margin: 9px 4px 2px; color: #5b5669; font-size: .9rem; text-align: center; line-height: 1.4; }
+    .game-canvas { display: block; width: 100%; aspect-ratio: 5 / 4; border: 2px solid #20202a; border-radius: 5px; background: #101426; cursor: crosshair; touch-action: manipulation; }
+    .runner-canvas { background: #e7f7ff; cursor: pointer; }
+    .hint { color: #655c7a; text-align: center; margin: 0 0 24px; }
+    @media (max-width: 680px) { body { padding: 18px 12px 32px; } .games { grid-template-columns: 1fr; } .game-panel { max-width: 520px; width: 100%; margin: 0 auto; } }
+    @media (prefers-reduced-motion: reduce) { .game-panel { transition: none; } }
   </style>
 </head>
 <body>
   <main>
-    <section class="panel" aria-label="Оживлённый первый кадр комикса">
+    <h1>Маленькие истории и игры</h1>
+    <section class="panel hero" aria-label="Оживлённый первый кадр комикса">
       <video controls autoplay muted loop playsinline preload="metadata" poster="src/image/comic-01.jpg">
         <source src="src/video/video.mp4" type="video/mp4">
         Твой браузер не поддерживает видео HTML5.
       </video>
       <p class="caption">Кадр 1. История начинается…</p>
-      <p class="video-note">Видео запускается без звука автоматически. Включи звук кнопкой плеера.</p>
+      <p class="note">Видео запускается без звука автоматически. Включи звук кнопкой плеера.</p>
+    </section>
+
+    <p class="hint">Наведи мышку на кадр с игрой — и она оживёт!</p>
+    <section class="games" aria-label="Мини-игры">
+      <article class="panel game-panel" id="galaga-panel">
+        <canvas class="game-canvas" id="galaga" width="500" height="400" aria-label="Простая космическая стрелялка"></canvas>
+        <p class="caption">Кадр 2. Космический стрелок</p>
+        <p class="note">Наведи мышку на поле: корабль следует за ней и автоматически стреляет по пришельцам.</p>
+      </article>
+      <article class="panel game-panel" id="hippo-panel">
+        <canvas class="game-canvas runner-canvas" id="hippo" width="500" height="400" aria-label="Бегемот прыгает через препятствия"></canvas>
+        <p class="caption">Кадр 3. Бегемот на пробежке</p>
+        <p class="note">Наведи мышку, чтобы запустить. Кликни или нажми пробел, чтобы прыгнуть. После столкновения бегемот кувыркнётся и побежит снова.</p>
+      </article>
     </section>
   </main>
+
+<script>
+(() => {
+  const galagaCanvas = document.getElementById('galaga');
+  const gctx = galagaCanvas.getContext('2d');
+  const galagaPanel = document.getElementById('galaga-panel');
+  let gActive = false, gx = 250, gBullets = [], enemies = [], gFrame = 0, gRaf = 0;
+  const gw = 500, gh = 400;
+
+  function drawGalaga() {
+    if (!gActive) return;
+    gFrame++;
+    gctx.fillStyle = '#101426'; gctx.fillRect(0, 0, gw, gh);
+    for (let i=0;i<55;i++) {
+      const x=(i*83)%gw, y=(i*47+gFrame*.45)%gh;
+      gctx.fillStyle = i%4===0 ? '#ffda75' : '#aab8ff';
+      gctx.fillRect(x,y,2,2);
+    }
+    if (gFrame%38===0) enemies.push({x:25+Math.random()*450,y:-18,s:1.2+Math.random()*1.1,phase:Math.random()*6});
+    enemies = enemies.filter(e=>e.y<gh+20);
+    enemies.forEach(e=>{
+      e.y+=e.s; e.x+=Math.sin(e.y*.035+e.phase)*1.1;
+      gctx.fillStyle='#ff638e'; gctx.fillRect(e.x-11,e.y-8,22,15);
+      gctx.fillStyle='#ffd5e0'; gctx.fillRect(e.x-6,e.y-4,4,4); gctx.fillRect(e.x+3,e.y-4,4,4);
+      gctx.fillStyle='#ff638e'; gctx.fillRect(e.x-15,e.y+3,5,5); gctx.fillRect(e.x+10,e.y+3,5,5);
+    });
+    if (gFrame%10===0) gBullets.push({x:gx,y:330});
+    gBullets = gBullets.filter(b=>b.y>0);
+    gBullets.forEach(b=>{ b.y-=7; gctx.fillStyle='#7affdc'; gctx.fillRect(b.x-2,b.y,4,12); });
+    for(let i=enemies.length-1;i>=0;i--){
+      const e=enemies[i], hit=gBullets.findIndex(b=>Math.abs(b.x-e.x)<17&&Math.abs(b.y-e.y)<15);
+      if(hit>=0){ enemies.splice(i,1); gBullets.splice(hit,1); }
+    }
+    // Tiny pixel spaceship
+    gctx.fillStyle='#7affdc'; gctx.beginPath(); gctx.moveTo(gx,329); gctx.lineTo(gx-19,357); gctx.lineTo(gx-7,353); gctx.lineTo(gx,364); gctx.lineTo(gx+7,353); gctx.lineTo(gx+19,357); gctx.closePath(); gctx.fill();
+    gctx.fillStyle='#fff'; gctx.font='bold 17px Arial'; gctx.fillText('GALAGA mini',14,26);
+    gctx.fillStyle='#aab8ff'; gctx.font='13px Arial'; gctx.fillText('Наводи на врагов!',14,46);
+    gRaf=requestAnimationFrame(drawGalaga);
+  }
+  galagaPanel.addEventListener('mouseenter',()=>{gActive=true;if(!gRaf)drawGalaga();});
+  galagaPanel.addEventListener('mouseleave',()=>{gActive=false;cancelAnimationFrame(gRaf);gRaf=0;});
+  galagaCanvas.addEventListener('mousemove',e=>{
+    const r=galagaCanvas.getBoundingClientRect(); gx=Math.max(20,Math.min(480,(e.clientX-r.left)/r.width*gw));
+  });
+  galagaCanvas.addEventListener('touchmove',e=>{
+    const r=galagaCanvas.getBoundingClientRect(); gx=Math.max(20,Math.min(480,(e.touches[0].clientX-r.left)/r.width*gw));
+  },{passive:true});
+  // Draw an attractive still frame before hover.
+  gctx.fillStyle='#101426';gctx.fillRect(0,0,gw,gh);
+  for(let i=0;i<45;i++){gctx.fillStyle=i%3?'#aab8ff':'#ffda75';gctx.fillRect((i*83)%gw,(i*47)%gh,2,2);}
+  gctx.fillStyle='#7affdc';gctx.beginPath();gctx.moveTo(250,170);gctx.lineTo(225,210);gctx.lineTo(275,210);gctx.fill();
+  gctx.fillStyle='#ff638e';for(let i=0;i<5;i++){gctx.fillRect(55+i*85,65+(i%2)*25,24,17);gctx.fillRect(59+i*85,60+(i%2)*25,5,5);gctx.fillRect(70+i*85,60+(i%2)*25,5,5);}
+  gctx.fillStyle='#fff';gctx.font='bold 18px Arial';gctx.fillText('Наведи, чтобы начать!',125,350);
+
+  const hippoCanvas=document.getElementById('hippo'), hctx=hippoCanvas.getContext('2d'), hippoPanel=document.getElementById('hippo-panel');
+  const hw=500, hh=400, ground=320;
+  let hActive=false,hRaf=0,hFrame=0,hy=ground,vy=0,obstacles=[],runScore=0,fall=0,runStarted=false;
+  function jump(){if(!hActive)return;if(hy>=ground-1&&!fall){vy=-12.8;}}
+  function hippoDraw(){
+    if(!hActive)return;
+    hFrame++; hctx.clearRect(0,0,hw,hh);
+    const sky=hctx.createLinearGradient(0,0,0,hh);sky.addColorStop(0,'#b9e8ff');sky.addColorStop(1,'#fff3d6');hctx.fillStyle=sky;hctx.fillRect(0,0,hw,hh);
+    // clouds and distant hills
+    hctx.fillStyle='#fff';[[65,65],[180,45],[390,75]].forEach(([x,y])=>{hctx.beginPath();hctx.arc(x,y,17,0,Math.PI*2);hctx.arc(x+18,y-7,21,0,Math.PI*2);hctx.arc(x+38,y,15,0,Math.PI*2);hctx.fill();});
+    hctx.fillStyle='#a5d7a0';hctx.beginPath();hctx.moveTo(0,285);hctx.quadraticCurveTo(110,220,220,280);hctx.quadraticCurveTo(340,215,500,270);hctx.lineTo(500,400);hctx.lineTo(0,400);hctx.fill();
+    hctx.fillStyle='#e5c58d';hctx.fillRect(0,ground,hw,hh-ground);
+    hctx.fillStyle='#9c845b';hctx.fillRect(0,ground,hw,5);
+    for(let i=0;i<12;i++){let x=(i*58-hFrame*4%58+58)%hw;hctx.fillStyle='#c7a875';hctx.fillRect(x,ground+30,22,3);}
+    if(hFrame%80===0)obstacles.push({x:hw+15,w:25+Math.random()*10,h:25+Math.random()*18});
+    obstacles.forEach(o=>o.x-=4.2);
+    obstacles=obstacles.filter(o=>o.x>-50);
+    obstacles.forEach(o=>{hctx.fillStyle='#d97738';hctx.fillRect(o.x,ground-o.h,o.w,o.h);hctx.fillStyle='#f6b15c';hctx.fillRect(o.x+4,ground-o.h+4,5,o.h-4);});
+    if(vy||hy<ground){vy+=.62;hy+=vy;if(hy>=ground){hy=ground;vy=0;}}
+    // collision causes a quick cartoon tumble, then resume running
+    const collision=obstacles.some(o=>o.x<120&&o.x+o.w>72&&hy>ground-22);
+    if(collision&&!fall){fall=34;vy=0;hy=ground;}
+    if(fall>0)fall--;
+    else if(!collision)runScore++;
+    const bob=fall?Math.sin(fall*.55)*.25:Math.sin(hFrame*.22)*2;
+    hctx.save();hctx.translate(92,hy-26+bob);
+    if(fall)hctx.rotate((34-fall)*.18);
+    // simple friendly hippo: body, ears, muzzle, legs
+    hctx.fillStyle='#8d83d8';hctx.beginPath();hctx.ellipse(0,-2,37,25,0,0,Math.PI*2);hctx.fill();
+    hctx.fillStyle='#9c92e8';hctx.beginPath();hctx.arc(22,-20,19,0,Math.PI*2);hctx.fill();
+    hctx.beginPath();hctx.arc(11,-37,7,0,Math.PI*2);hctx.arc(29,-37,7,0,Math.PI*2);hctx.fill();
+    hctx.fillStyle='#c9c3ff';hctx.beginPath();hctx.ellipse(36,-14,17,11,0,0,Math.PI*2);hctx.fill();
+    hctx.fillStyle='#51466e';hctx.beginPath();hctx.arc(26,-23,2.8,0,Math.PI*2);hctx.arc(42,-16,2,0,Math.PI*2);hctx.fill();
+    hctx.strokeStyle='#51466e';hctx.lineWidth=2;hctx.beginPath();hctx.moveTo(31,-7);hctx.quadraticCurveTo(37,-3,42,-8);hctx.stroke();
+    hctx.fillStyle='#756ac0';hctx.fillRect(-22,14,10,15+(hFrame%12<6?3:0));hctx.fillRect(9,14,10,15+(hFrame%12<6?0:3));
+    hctx.restore();
+    hctx.fillStyle='#283044';hctx.font='bold 17px Arial';hctx.fillText('БЕГЕМОТ RUN',14,27);
+    hctx.font='14px Arial';hctx.fillText('Счёт: '+Math.floor(runScore/8),410,27);
+    if(fall>0){hctx.fillStyle='#fff';hctx.font='bold 17px Arial';hctx.fillText('Ой! Кувырок!',185,100);}
+    hctx.fillStyle='#34445a';hctx.font='13px Arial';hctx.fillText('Клик / ПРОБЕЛ — прыжок',14,380);
+    hRaf=requestAnimationFrame(hippoDraw);
+  }
+  function startHippo(){if(hActive)return;hActive=true;runStarted=true;obstacles=[];fall=0;hy=ground;vy=0;hFrame=0;runScore=0;hippoDraw();}
+  hippoPanel.addEventListener('mouseenter',startHippo);
+  hippoPanel.addEventListener('mouseleave',()=>{hActive=false;cancelAnimationFrame(hRaf);hRaf=0;});
+  hippoCanvas.addEventListener('pointerdown',e=>{e.preventDefault();if(!hActive)startHippo();else jump();});
+  document.addEventListener('keydown',e=>{if(e.code==='Space'&&hActive&&document.activeElement.tagName!=='INPUT'){e.preventDefault();jump();}});
+  // Idle preview with the same simple cartoon style.
+  hctx.fillStyle='#b9e8ff';hctx.fillRect(0,0,hw,hh);hctx.fillStyle='#a5d7a0';hctx.fillRect(0,260,hw,60);hctx.fillStyle='#e5c58d';hctx.fillRect(0,ground,hw,80);hctx.fillStyle='#9c845b';hctx.fillRect(0,ground,hw,5);
+  hctx.fillStyle='#d97738';hctx.fillRect(355,ground-42,28,42);
+  hctx.fillStyle='#8d83d8';hctx.beginPath();hctx.ellipse(100,ground-27,37,25,0,0,Math.PI*2);hctx.fill();hctx.fillStyle='#9c92e8';hctx.beginPath();hctx.arc(122,ground-45,19,0,Math.PI*2);hctx.fill();hctx.fillStyle='#c9c3ff';hctx.beginPath();hctx.ellipse(136,ground-39,17,11,0,0,Math.PI*2);hctx.fill();hctx.fillStyle='#51466e';hctx.beginPath();hctx.arc(119,ground-48,3,0,Math.PI*2);hctx.fill();hctx.fillStyle='#283044';hctx.font='bold 18px Arial';hctx.fillText('Наведи, чтобы начать!',130,90);
+})();
+</script>
 </body>
 </html>
