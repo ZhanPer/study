@@ -27,16 +27,25 @@
       border-radius: 12px;
       box-shadow: 8px 8px 0 #c7b5ff;
     }
-    .panel img {
+    .panel img,
+    .panel video {
       display: block;
       width: 100%;
       height: auto;
       border: 2px solid #20202a;
+      border-radius: 4px;
+      background: #17151e;
     }
     .caption {
       margin: 14px 4px 4px;
       font-size: 1.1rem;
       font-weight: 700;
+      text-align: center;
+    }
+    .video-note {
+      margin: 10px 4px 4px;
+      color: #5b5669;
+      font-size: .92rem;
       text-align: center;
     }
   </style>
@@ -46,9 +55,13 @@
     <h1>Привет я тут, а ты?</h1>
     <p>Второй коммит</p>
 
-    <section class="panel" aria-label="Первый кадр комикса">
-      <img src="https://i.ytimg.com/vi/xv3qEi3rBqg/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&amp;rs=AOn4CLAu_xO6iKhDPwfIeeqFejRlleb9uQ" alt="Первый кадр комикса">
+    <section class="panel" aria-label="Оживлённый первый кадр комикса">
+      <video controls autoplay muted loop playsinline preload="metadata" poster="https://i.ytimg.com/vi/xv3qEi3rBqg/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&amp;rs=AOn4CLAu_xO6iKhDPwfIeeqFejRlleb9uQ">
+        <source src="video.mp4" type="video/mp4">
+        Твой браузер не поддерживает видео HTML5.
+      </video>
       <p class="caption">Кадр 1. История начинается…</p>
+      <p class="video-note">Видео запускается без звука автоматически. Включи звук кнопкой плеера.</p>
     </section>
   </main>
 </body>
